@@ -140,17 +140,22 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="framework.h" />
+    <ClInclude Include="Gameplay.h" />
+    <ClInclude Include="Gen.h" />
     <ClInclude Include="Kurs_5_sem.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="targetver.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Gameplay.cpp" />
+    <ClCompile Include="Gen.cpp" />
     <ClCompile Include="Kurs_5_sem.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Kurs_5_sem.rc" />
   </ItemGroup>
   <ItemGroup>
+    <Image Include="..\..\..\..\123123.bmp" />
     <Image Include="Kurs_5_sem.ico" />
     <Image Include="small.ico" />
   </ItemGroup>

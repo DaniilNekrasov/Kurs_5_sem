@@ -1,20 +1,23 @@
-﻿// Kurs_5_sem.cpp : Определяет точку входа для приложения.
-
-
-#include "framework.h"
+﻿#include "framework.h"
 #include "Kurs_5_sem.h"
 #include "Math.h"
 #include <Windows.h>
 #include <mmsystem.h>
+#include "resource.h"
+//#include "Gen.h"
+//#include "Gameplay.h"
 
 #define MAX_LOADSTRING 100
+
 #define AddEnemy(a,b, type) ObjectInit(NewObject(), a, b, 40, 40, type)
 
-/////////////////////////////////////////////////////
+HBITMAP pattern;
 
 typedef struct SPoint {
 	float x, y;
 }TPoint;
+
+HBITMAP pic;
 
 TPoint point(float x, float y)
 {
@@ -27,6 +30,7 @@ TPoint point(float x, float y)
 TPoint cam;
 BOOL guard = FALSE;
 BOOL pause = FALSE;
+
 
 typedef struct SObject {
 	TPoint pos;
@@ -55,14 +59,29 @@ PObject NewObject()
 	return mas + masCnt - 1;
 }
 
-BOOL ObjectCollision(TObject o1, TObject o2)
-{
-	return ((o1.pos.x + o1.size.x) > o2.pos.x) && ((o2.pos.x + o2.size.x) > o1.pos.x)
-		&& ((o1.pos.y + o1.size.y) > o2.pos.y) && ((o2.pos.y + o2.size.y) > o1.pos.y);
-}
-
 void ObjectInit(TObject* obj, float xPos, float yPos, float width, float height, char objType)
 {
+
+	//SetTimer(hWnd, 1, 1, NULL);
+	//HBITMAP hBitmap = (HBITMAP)LoadImage(NULL, L"D:\\123123.bmp", IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE | LR_DEFAULTSIZE);
+	////hBmpImgMask = (HBITMAP)LoadImage(NULL, L"D:\\pic1.bmp", IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE | LR_DEFAULTSIZE);
+	//GetObject(hBitmap, sizeof(bm), &bm);
+	////GetObject(hBmpImgMask, sizeof(bmMask), &bmMask);
+	//hdc = GetDC(hWnd);
+	//memBit = CreateCompatibleDC(hdc);
+
+	//hdcMem = CreateCompatibleDC(hdc);
+	//hbmMem = CreateCompatibleBitmap(hdc, winWidth, winHeight);
+	//hbmOld = (HBITMAP)SelectObject(hdcMem, hbmMem);
+
+	//FillRect(hdcMem, &re, hbrushw);
+	//spriteDC = CreateCompatibleDC(hdcMem);
+
+	/*pic = LoadBitmap(hInst, MAKEINTRESOURCE("IDB_BITMAP1"));
+	BITMAP img = GetObject(pic, sizeof(img), &img);
+	HBRUSH newBrush = CreatePatternBrush(pic);
+	HGDIOBJ qwe = SelectObject(, newBrush);*/
+
 	obj->pos = point(xPos, yPos);
 	obj->size = point(width, height);
 	obj->brush = RGB(0, 0, 255);
@@ -72,12 +91,43 @@ void ObjectInit(TObject* obj, float xPos, float yPos, float width, float height,
 	if (objType == 'e') obj->brush = RGB(255, 0, 0);
 	if (objType == 'f') obj->brush = RGB(255, 255, 0);
 	if (objType == 's') obj->brush = RGB(255, 0, 255);
-	if (objType == 'b') obj->brush = RGB(255, 0, 100);
-	if (objType == 'q') obj->brush = RGB(100, 0, 255);
+	if (objType == 'b') obj->brush = RGB(0, 255, 255);
 
+	if (objType == 'q')
+	{
+		obj->brush = RGB(255,155,0);
+	}
 
 
 	obj->isDel = FALSE;
+}
+
+void WinInit()
+{
+	needNewGame = FALSE;
+	masCnt = 0;
+	mas = (PObject)realloc(mas, 0);
+	ObjectInit(&player, 100, 100, 40, 40, 'p');
+}
+
+void GenNewEnemy()
+{
+	static int rad = 300;
+	int pos1 = (rand() % 2 == 0 ? -rad : rad);
+	int pos2 = (rand() % (rad * 2)) - rad;
+	int k = rand() % 280;
+	if (k < 3)
+		AddEnemy(player.pos.x + pos1, player.pos.y + pos2, 'e');
+	if (k == 3)
+		AddEnemy(player.pos.x + pos2, player.pos.y + pos1, 'f');
+	if (k == 4)
+		AddEnemy(player.pos.x + pos2, player.pos.y + pos1, 's');
+}
+
+BOOL ObjectCollision(TObject o1, TObject o2)
+{
+	return ((o1.pos.x + o1.size.x) > o2.pos.x) && ((o2.pos.x + o2.size.x) > o1.pos.x)
+		&& ((o1.pos.y + o1.size.y) > o2.pos.y) && ((o2.pos.y + o2.size.y) > o1.pos.y);
 }
 
 void ObjectShow(TObject obj, HDC dc)
@@ -88,8 +138,20 @@ void ObjectShow(TObject obj, HDC dc)
 	SetDCBrushColor(dc, obj.brush);
 
 	BOOL(*shape)(HDC, int, int, int, int);
-	shape = (obj.oType != 'p') ? Ellipse : Rectangle;
-	shape(dc, (int)(obj.pos.x - cam.x), (int)(obj.pos.y - cam.y), (int)(obj.pos.x + obj.size.x - cam.x), (int)(obj.pos.y + obj.size.y - cam.y));
+	HBRUSH newBrush;
+
+	if (obj.oType == 'q')
+	{
+		newBrush = CreatePatternBrush(pattern);
+		SelectObject(dc, newBrush);
+		shape = Ellipse;
+		shape(dc, (int)(obj.pos.x - cam.x), (int)(obj.pos.y - cam.y), (int)(obj.pos.x + obj.size.x - cam.x), (int)(obj.pos.y + obj.size.y - cam.y));
+	}
+	else
+	{
+		shape = (obj.oType != 'p') ? Ellipse : Rectangle;
+		shape(dc, (int)(obj.pos.x - cam.x), (int)(obj.pos.y - cam.y), (int)(obj.pos.x + obj.size.x - cam.x), (int)(obj.pos.y + obj.size.y - cam.y));
+	}	
 }
 
 void ObjectSetDestPoint(TObject* obj, float xPos, float yPos, float vecSpeed)
@@ -109,12 +171,12 @@ void SetCameraFocus(TObject obj)
 
 void Bust(int xPos, int yPos)
 {
-	int k = rand() % 3;
-	if (k == 1)
+	int k = rand() % 60;
+	if ((k > 10) && (k < 12))
 	{
 		ObjectInit(NewObject(), xPos, yPos, 20, 20, 'b');
 	}
-	else if (k == 2)
+	else if (k < 5)
 	{
 		ObjectInit(NewObject(), xPos, yPos, 20, 20, 'q');
 	}
@@ -126,7 +188,7 @@ void ObjectMove(TObject* obj)
 	{
 		if (rand() % 4 == 1)
 		{
-			static float enemySpeed = 1;
+			static float enemySpeed = 1.2;
 			ObjectSetDestPoint(obj, player.pos.x, player.pos.y, enemySpeed);
 		}
 		if (ObjectCollision(*obj, player))
@@ -145,7 +207,7 @@ void ObjectMove(TObject* obj)
 	{
 		if (rand() % 4 == 1)
 		{
-			static float enemySpeed = 2;
+			static float enemySpeed = 2.1;
 			ObjectSetDestPoint(obj, player.pos.x, player.pos.y, enemySpeed);
 		}
 		if (ObjectCollision(*obj, player))
@@ -164,17 +226,17 @@ void ObjectMove(TObject* obj)
 	{
 		if (rand() % 4 == 1)
 		{
-			static float enemySpeed = 1;
+			static float enemySpeed = 1.2;
 			ObjectSetDestPoint(obj, player.pos.x, player.pos.y, enemySpeed);
 		}
-		if (ObjectCollision(*obj, player) )
+		if (ObjectCollision(*obj, player))
 		{
 			if (!guard)
 				needNewGame = TRUE;
 			else
 			{
 				obj->isDel = TRUE;
-				player.brush = RGB(0,0,255);
+				player.brush = RGB(0, 0, 255);
 				guard = FALSE;
 			}
 		}
@@ -230,21 +292,7 @@ void ObjectMove(TObject* obj)
 	}
 }
 
-void GenNewEnemy()
-{
-	static int rad = 300;
-	int pos1 = (rand() % 2 == 0 ? -rad : rad);
-	int pos2 = (rand() % (rad * 2)) - rad;
-	int k = rand() % 280;
-	if (k == 1)
-		AddEnemy(player.pos.x + pos1, player.pos.y + pos2, 'e');
-	if (k == 2)
-		AddEnemy(player.pos.x + pos2, player.pos.y + pos1, 'e');
-	if (k == 3)
-		AddEnemy(player.pos.x + pos2, player.pos.y + pos1, 'f');
-	if (k == 4)
-		AddEnemy(player.pos.x + pos2, player.pos.y + pos1, 's');
-}
+
 
 void DelObjects()
 {
@@ -266,7 +314,6 @@ void DelObjects()
 
 void AddBullet(float xPos, float yPos, float x, float y)
 {
-	//PlaySoundA("1.wav", NULL,SND_FILENAME | SND_ASYNC);
 	Beep(800, 10);
 	PObject obj = NewObject();
 	ObjectInit(obj, xPos, yPos, 10, 10, '1');
@@ -291,18 +338,14 @@ void PlayerControl()
 		player.speed = point(player.speed.x * 0.7, player.speed.y * 0.7);
 }
 
-void WinInit()
-{
-	needNewGame = FALSE;
-	masCnt = 0;
-	mas = (PObject)realloc(mas, 0);
-	ObjectInit(&player, 100, 100, 40, 40, 'p');
-}
 
-void WinMove()
+void WinMove(HWND hwnd)
 {
 	if (needNewGame)
 	{
+		pause = TRUE;
+		HWND hWndPause = CreateWindowW(L"static", L"TO START NEW GAME PRESS SPACE", WS_CHILD | WS_VISIBLE,
+			550, 350, 300, 40, hwnd, nullptr, nullptr, nullptr);
 		WinInit();
 	}
 	PlayerControl();
@@ -345,14 +388,13 @@ void WinShow(HDC dc)
 	DeleteObject(memBM);
 }
 
-////////////////////////////////////////////////////////////
 
-bool out = false;
 
 // Глобальные переменные:
 HINSTANCE hInst;                                // текущий экземпляр
 WCHAR szTitle[MAX_LOADSTRING];                  // Текст строки заголовка
 WCHAR szWindowClass[MAX_LOADSTRING];            // имя класса главного окна
+WCHAR szWindowClassP[MAX_LOADSTRING];            // имя класса главного окна
 
 // Отправить объявления функций, включенных в этот модуль кода:
 ATOM                MyRegisterClass(HINSTANCE hInstance);
@@ -368,14 +410,10 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	UNREFERENCED_PARAMETER(hPrevInstance);
 	UNREFERENCED_PARAMETER(lpCmdLine);
 
-	// TODO: Разместите код здесь.
-
-	// Инициализация глобальных строк
 	LoadStringW(hInstance, IDS_APP_TITLE, szTitle, MAX_LOADSTRING);
 	LoadStringW(hInstance, IDC_KURS5SEM, szWindowClass, MAX_LOADSTRING);
 	MyRegisterClass(hInstance);
 
-	// Выполнить инициализацию приложения:
 	if (!InitInstance(hInstance, nCmdShow))
 	{
 		return FALSE;
@@ -385,35 +423,26 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	HDC hdc;
 	MSG msg;
 
+	PeekMessageA(&msg, NULL, 0, 0, PM_REMOVE);
+	HWND hWndPause = CreateWindowW(L"static", L"TO START NEW GAME PRESS SPACE", WS_CHILD | WS_VISIBLE,
+		550, 350, 300, 40, msg.hwnd, nullptr, nullptr, nullptr);
 	WinInit();
-	
-	// Цикл основного сообщения:
-	//while (GetMessage(&msg, nullptr, 0, 0))
-	//{
-	//	if (!TranslateAccelerator(msg.hwnd, hAccelTable, &msg))
-	//	{
-	//		TranslateMessage(&msg);
-	//		DispatchMessage(&msg);
-	//	}
-	//}
+
+
+
 	while (1)
 	{
 		if (PeekMessageA(&msg, NULL, 0, 0, PM_REMOVE))
 		{
-			//AllocConsole();
-			//HANDLE handle = GetStdHandle(STD_OUTPUT_HANDLE);
-			//
-			//WriteConsoleA(handle, msg.message, sizeof((int*)msg.message), 0, 0);
-
 			if (msg.message == WM_QUIT)break;
 			GetClientRect(msg.hwnd, &rct);
 			TranslateMessage(&msg);
 			DispatchMessage(&msg);
 		}
-		else
+		else if (!pause)
 		{
 			hdc = GetDC(msg.hwnd);
-			WinMove();
+			WinMove(msg.hwnd);
 			WinShow(hdc);
 			//Sleep(1);
 		}
@@ -464,11 +493,12 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 {
 	hInst = hInstance; // Сохранить маркер экземпляра в глобальной переменной
 
-	HWND hWnd = CreateWindowW(szWindowClass, szTitle, WS_OVERLAPPEDWINDOW | CDS_FULLSCREEN,
-		1, 1, 1380, 900, nullptr, nullptr, hInstance, nullptr);
+	pattern = LoadBitmap(hInst, MAKEINTRESOURCE(IDB_BITMAP1));
+
+	HWND hWnd = CreateWindowW(szWindowClass, szTitle, WS_OVERLAPPEDWINDOW,
+		1, 1, 1378, 900, nullptr, nullptr, hInstance, nullptr);
 
 	GetClientRect(hWnd, &rct);
-
 
 	if (!hWnd)
 	{
@@ -476,6 +506,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 	}
 
 	ShowWindow(hWnd, nCmdShow);
+
 	UpdateWindow(hWnd);
 
 	return TRUE;
@@ -515,26 +546,30 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	break;
 	case WM_LBUTTONDOWN:
 	{
-		//SOUND
-		//Beep(600, 500);
-		int xPos = LOWORD(lParam);
-		int yPos = HIWORD(lParam);
-		AddBullet(player.pos.x + player.size.x / 2, player.pos.y + player.size.y / 2, xPos + cam.x, yPos + cam.y);
-	}
-	case WM_SIZE:
-	{
-
-
+		if (!pause)
+		{
+			int xPos = LOWORD(lParam);
+			int yPos = HIWORD(lParam);
+			AddBullet(player.pos.x + player.size.x / 2, player.pos.y + player.size.y / 2, xPos + cam.x, yPos + cam.y);
+		}
 	}
 	case WM_KEYDOWN:
 	{
+		switch (wParam) {
+		case VK_SPACE:
+			pause = !pause;
+			if (pause)
+			HWND hWndPause = CreateWindowW(L"static", L"PAUSE", WS_CHILD | WS_VISIBLE,
+				650, 350, 100, 40, hWnd, nullptr, nullptr, nullptr);
+			break;
+		}
 	}
 	case WM_PAINT:
 	{
 		PAINTSTRUCT ps;
 		HDC hdc = BeginPaint(hWnd, &ps);
 		//GetClientRect(hWnd, &rct);
-		WinMove();
+		WinMove(hWnd);
 		WinShow(hdc);
 		EndPaint(hWnd, &ps);
 	}
@@ -567,24 +602,3 @@ INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 	}
 	return (INT_PTR)FALSE;
 }
-
-
-
-//int main()
-//{
-//    WNDCLASSA wcl;
-//    memset(&wcl, 0, sizeof(WNDCLASSA));
-//    wcl.lpszClassName = "my Window";
-//    wcl.lpfnWndProc = DefWindowProcA;
-//    RegisterClassA(&wcl);
-//
-//    HWND hwnd;
-//    hwnd = CreateWindow("my Window", "Window Name", WS_OVERLAPPEDWINDOW, 10, 10, 640, 480, NULL, NULL, NULL, NULL);
-//
-//    ShowWindow(hwnd, SW_SHOWNORMAL);
-//    while (1)
-//    {
-//
-//    }
-//    return 0;
-//}
